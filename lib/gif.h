@@ -1,20 +1,13 @@
-#include <gtk/gtk.h>
+#ifndef GIF_H
+#define GIF_H
+
 #include "data.h"
-
-typedef struct {
-	GdkPixbufAnimation* gif_anim;
-	GdkPixbufAnimationIter* gif_iter;
-
-	char* path;
-
-	int gif_x;
-	int gif_y;
-	int gif_width;
-	int gif_height;
-} Gif;
 
 Gif* gif_new(const char* path);
 void gif_free(Gif* g);
+void add_gif_tab(AppData* data, const char* path);
 
 void load_gifs(const char* path, AppData* data);
 void save_gifs(const char* path, AppData* data);
+
+#endif

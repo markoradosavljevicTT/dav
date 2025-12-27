@@ -1,28 +1,30 @@
 #ifndef DATA_H
 #define DATA_H
 
-#include <gtk/gtk.h>
-#include "audio.h"
-#include "config.h"
 #include <stdbool.h>
 
 typedef struct {
-	GtkWidget* overlay;
-	cairo_region_t* input_region;
-	GtkWidget* window;
-	GtkWidget* header;
-	GtkWidget* grid;
-	GtkWidget* devices;
-	GtkWidget* start_stop;
-	GtkWidget* device_name;
-	StreamData* stream;
-	Config* settings;
-	bool visualizer;
-	GList* gifs;
-	GtkWidget* notebook;
-#ifdef __APPLE__
-	void* native_window; // Native macOS window
-#endif
+	char* path;
+	int gif_x;
+	int gif_y;
+	int gif_width;
+	int gif_height;
+	void* imageSource; // CGImageSourceRef for animation
+	int currentFrame;
+	int frameCount;
+	double* frameDurations; // Duration for each frame
+	double lastFrameTime; // Time when last frame was displayed
+} Gif;
+
+typedef struct GifList {
+	Gif* gif;
+	struct GifList* next;
+} GifList;
+
+typedef struct {
+	void* overlay; // Native overlay window
+	void* native_window; // Native settings window
+	GifList* gifs;
 } AppData;
 
 #endif

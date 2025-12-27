@@ -1,13 +1,13 @@
 #ifndef UI_H
 #define UI_H
 
-#include "data.h"
-
-extern int device;
-
-void create_window(AppData*);
-void show_notification(AppData*, const char*);
-void close_dav(GtkWidget* window, gpointer d);
-void open_gif_tab(AppData* data, void* gif);
+#ifdef __APPLE__
+void* ui_create_settings_window(void* app_data);
+void ui_show_settings_window(void* window);
+void ui_destroy_settings_window(void* window);
+void* ui_create_overlay(void* app_data);
+void ui_close_overlay(void* overlay);
+void ui_start_app_loop();
+#endif
 
 #endif
