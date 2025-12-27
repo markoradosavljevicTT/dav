@@ -6,93 +6,21 @@ PKG = pkg-config
 SRC = src
 LIB = lib
 BUILD = build
-RES = resources
-
-# Detect OS
-UNAME_S := $(shell uname -s)
-
-MXE = /home/user/mxe
-TGT = x86_64-w64-mingw32.static
-MXE_CC = $(MXE)/usr/bin/$(TGT)-gcc
-MXE_PKG = $(MXE)/usr/bin/$(TGT)-pkg-config
-MXE_GRES = $(MXE)/usr/$(TGT)/bin/glib-compile-resources
-MXE_GSCH = $(MXE)/usr/$(TGT)/bin/glib-compile-schemas
-MXE_SCH = $(MXE)/usr/$(TGT)/share/glib-2.0/schemas
-
-L_GRES = glib-compile-resources
-L_RES_XML = icon.xml
-L_RES_C = $(BUILD)/lin/resources.c
-L_RES_O = $(BUILD)/lin/resources.o
 
 SRCS = $(wildcard $(SRC)/*.c)
-L_SRCS = $(filter-out $(SRC)/win32_overlay.c,$(SRCS))
-W_SRCS = $(filter-out $(SRC)/wayland.c $(SRC)/x11.c,$(SRCS))
-M_SRCS = $(filter-out $(SRC)/win32_overlay.c $(SRC)/wayland.c $(SRC)/x11.c,$(SRCS))
 M_OBJC_SRCS = $(wildcard $(SRC)/*.m)
-L_OBJS = $(L_SRCS:$(SRC)/%.c=$(BUILD)/lin/%.o)
-W_OBJS = $(W_SRCS:$(SRC)/%.c=$(BUILD)/win/%.o)
-M_OBJS = $(M_SRCS:$(SRC)/%.c=$(BUILD)/mac/%.o) $(M_OBJC_SRCS:$(SRC)/%.m=$(BUILD)/mac/%.o)
+M_OBJS = $(SRCS:$(SRC)/%.c=$(BUILD)/mac/%.o) $(M_OBJC_SRCS:$(SRC)/%.m=$(BUILD)/mac/%.o)
 
 FLAGS = -Wall -I$(LIB) -O3 -MD -MP -Wno-deprecated-declarations
-L_CFLAGS = $(FLAGS) -D__linux__ $(shell $(PKG) --cflags gtk+-3.0 gtk-layer-shell-0 ayatana-appindicator3-0.1)
-W_CFLAGS = $(FLAGS) -DWIN32 -D_WIN32 $(shell $(MXE_PKG) --cflags gtk+-3.0)
 M_CFLAGS = $(FLAGS) -D__APPLE__ $(shell $(PKG) --cflags gtk+-3.0) -I/opt/homebrew/include
-L_LDFLAGS = $(shell $(PKG) --libs gtk+-3.0 gtk-layer-shell-0 ayatana-appindicator3-0.1) -lportaudio -lm -lwayland-client -lX11 -lXfixes
-W_LDFLAGS = -mwindows $(shell $(MXE_PKG) --libs gtk+-3.0) -lportaudio -lm -lwinmm -lsetupapi -lole32
 M_LDFLAGS = $(shell $(PKG) --libs gtk+-3.0) -L/opt/homebrew/lib -lportaudio -lm -framework Cocoa -framework CoreFoundation
 
-.PHONY: all windows mac run clean
+RES_XML = icon.xml
+RES_GRES = glib-compile-resources
 
-ifeq ($(UNAME_S),Linux)
-all: $(BUILD)/lin/dav
-else ifeq ($(UNAME_S),Darwin)
+.PHONY: all run clean
+
 all: $(BUILD)/mac/dav
-else
-all: $(BUILD)/lin/dav
-endif
-
-# linux
-$(BUILD)/lin/dav: $(L_OBJS) $(L_RES_O)
-	$(CC) $^ -o $@ $(L_LDFLAGS)
-
-$(BUILD)/lin/%.o: $(SRC)/%.c | $(BUILD)/lin
-	$(CC) $(L_CFLAGS) -c $< -o $@
-
-$(BUILD)/lin:
-	@$(MKDIR) $@
-
-$(L_RES_C): $(L_RES_XML) icon.png | $(BUILD)/lin
-	$(L_GRES) --target=$@ --generate-source --sourcedir=. $<
-
-$(L_RES_O): $(L_RES_C)
-	$(CC) $(L_CFLAGS) -c $< -o $@
-
-# windows
-windows: clean
-	@$(MAKE) --no-print-directory $(BUILD)/win/dav.exe
-
-$(BUILD)/win/dav.exe: $(RES)/schemas/gschemas.compiled $(W_OBJS) $(BUILD)/win/resources.o
-	$(MXE_CC) $(filter %.o,$^) -o $@ $(W_LDFLAGS)
-
-$(BUILD)/win/%.o: $(SRC)/%.c | $(BUILD)/win
-	$(MXE_CC) $(W_CFLAGS) -c $< -o $@
-
-$(BUILD)/win:
-	@$(MKDIR) $@
-
-$(BUILD)/win/resources.o: $(BUILD)/win/resources.c
-	$(MXE_CC) $(W_CFLAGS) -c $< -o $@
-
-$(BUILD)/win/resources.c: resources.gresource.xml $(RES)/schemas/gschemas.compiled
-	$(MXE_GRES) --target=$@ --generate-source --sourcedir=$(RES) $<
-
-$(RES)/schemas/gschemas.compiled:
-	@$(MKDIR) $(RES)/schemas
-	@cp $(MXE_SCH)/*.xml $(RES)/schemas/ 2>/dev/null || true
-	@$(MXE_GSCH) $(RES)/schemas
-
-# macOS
-mac: $(BUILD)/mac/dav
 
 $(BUILD)/mac/dav: $(M_OBJS) $(BUILD)/mac/resources.o
 	$(CC) $^ -o $@ $(M_LDFLAGS)
@@ -109,17 +37,13 @@ $(BUILD)/mac:
 $(BUILD)/mac/resources.o: $(BUILD)/mac/resources.c
 	$(CC) $(M_CFLAGS) -c $< -o $@
 
-$(BUILD)/mac/resources.c: $(L_RES_XML) icon.png | $(BUILD)/mac
-	$(L_GRES) --target=$@ --generate-source --sourcedir=. $<
+$(BUILD)/mac/resources.c: $(RES_XML) icon.png | $(BUILD)/mac
+	$(RES_GRES) --target=$@ --generate-source --sourcedir=. $<
 
 run: all
-ifeq ($(UNAME_S),Darwin)
 	./$(BUILD)/mac/dav
-else
-	./$(BUILD)/lin/dav
-endif
 
 clean:
-	@$(RM) $(BUILD) $(RES)
+	@$(RM) $(BUILD)
 
--include $(BUILD)/*.d
+-include $(BUILD)/mac/*.d

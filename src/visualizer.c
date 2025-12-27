@@ -1,15 +1,7 @@
 #include "visualizer.h"
 #include "data.h"
 #include "gif.h"
-
-#if defined(__linux__)
-  #include "wayland.h"
-  #include "x11.h"
-#elif defined(WIN32) || defined(_WIN32)
-  #include "win32_overlay.h"
-#elif defined(__APPLE__)
-  #include "macos_helper.h"
-#endif
+#include "macos_helper.h"
 
 int device = -1;
 
@@ -91,9 +83,6 @@ gboolean draw_overlay(GtkWidget* widget, cairo_t* cr, gpointer d) {
 }
 
 void open_overlay(AppData* data) {
-#if defined(WIN32) || defined(_WIN32)
-	open_win32_overlay(data);
-#elif defined(__APPLE__)
 	// macOS overlay - simple window approach
 	data->overlay = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_decorated(GTK_WINDOW(data->overlay), FALSE);
@@ -116,28 +105,11 @@ void open_overlay(AppData* data) {
 	
 	// Make window visible on all Spaces/Desktops
 	macos_set_window_on_all_spaces(gtk_widget_get_window(data->overlay));
-#elif defined(__linux__)
-	if (getenv("WAYLAND_DISPLAY")) {
-		open_wayland_overlay(data);
-	} else {
-		open_x11_overlay(data);
-	}
-#endif
 }
 
 void close_overlay(AppData* data) {
-#if defined(WIN32) || defined(_WIN32)
-	close_win32_overlay(data);
-#elif defined(__APPLE__)
 	if (data->overlay) {
 		gtk_widget_destroy(data->overlay);
 		data->overlay = NULL;
 	}
-#elif defined(__linux__)
-	if (getenv("WAYLAND_DISPLAY")) {
-		close_wayland_overlay(data);
-	} else {
-		close_x11_overlay(data);
-	}
-#endif
 }

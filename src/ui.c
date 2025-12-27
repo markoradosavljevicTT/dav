@@ -3,10 +3,6 @@
 #include <stdio.h>
 #include "gif.h"
 
-#if defined(__linux__)
-#include <libayatana-appindicator/app-indicator.h>
-#endif
-
 #if defined(__APPLE__)
 #include "macos_helper.h"
 #endif
@@ -380,10 +376,6 @@ void close_dav(GtkWidget* window, gpointer d) {
 		data->native_window = NULL;
 	}
 	gtk_main_quit();
-#elif defined(WIN32) || defined(_WIN32)
-	gtk_main_quit();
-#else
-	g_application_quit(G_APPLICATION(gtk_window_get_application(GTK_WINDOW(data->window))));
 #endif
 }
 
@@ -406,55 +398,6 @@ static gboolean on_button_press(GtkWidget *widget, GdkEvent *event, gpointer use
 		gtk_window_present(GTK_WINDOW(toplevel));
 	}
 	return FALSE;
-}
-#endif
-
-// static void show_main_window(GtkMenuItem *item, AppData *data) {
-// 	if (GTK_IS_WINDOW(data->window)) {
-// 		gtk_window_present(GTK_WINDOW(data->window));
-// 	}
-// }
-
-#if defined(__linux__)
-static void setup_tray_icon(AppData *data) {
-	AppIndicator *indicator = app_indicator_new(
-		"visualizer-indicator",
-		"audio-x-generic",
-		APP_INDICATOR_CATEGORY_APPLICATION_STATUS
-		);
-
-	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_resource("/app/icons/icon.png", NULL);
-	if (pixbuf) {
-		gchar *tmpfile = g_build_filename(g_get_tmp_dir(), "dav_icon.png", NULL);
-		gdk_pixbuf_save(pixbuf, tmpfile, "png", NULL, NULL);
-		app_indicator_set_icon_full(indicator, tmpfile, "App icon");
-		g_free(tmpfile);
-		g_object_unref(pixbuf);
-	}
-
-	GtkWidget *menu = gtk_menu_new();
-
-	GtkWidget *name_item = gtk_menu_item_new();
-	GtkWidget *name_label = gtk_label_new("DAV");
-	gtk_container_add(GTK_CONTAINER(name_item), name_label);
-	gtk_widget_set_sensitive(name_item, FALSE);
-
-	GtkWidget *separator = gtk_separator_menu_item_new();
-
-	GtkWidget *show_item = gtk_menu_item_new_with_label("Settings");
-	GtkWidget *quit_item = gtk_menu_item_new_with_label("Quit");
-
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), name_item);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), show_item);
-	gtk_menu_shell_append(GTK_MENU_SHELL(menu), quit_item);
-	gtk_widget_show_all(menu);
-
-	g_signal_connect(show_item, "activate", G_CALLBACK(show_main_window), data);
-	g_signal_connect(quit_item, "activate", G_CALLBACK(close_dav), data);
-
-	app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
-	app_indicator_set_menu(indicator, GTK_MENU(menu));
 }
 #endif
 
@@ -529,12 +472,6 @@ void create_window(AppData* data) {
 	data->native_window = macos_create_settings_window(data);
 	macos_show_settings_window(data->native_window);
 	return;
-#elif defined(WIN32) || defined(_WIN32)
-	data->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	g_signal_connect(G_OBJECT(data->window), "destroy", G_CALLBACK(close_dav), data);
-#else
-	setup_tray_icon(data);
-	g_signal_connect(data->window, "delete-event", G_CALLBACK(on_window_delete), data);
 #endif
 
 	gtk_window_set_default_size(GTK_WINDOW(data->window), 600, 500);
